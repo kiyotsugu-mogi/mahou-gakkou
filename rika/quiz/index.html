@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まほうつかいの りかクイズ</title>
+<link rel="stylesheet" href="../../common/style.css">
+<style>
+  .row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
+
+  /* 単元 いちらん */
+  .units { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .unit {
+    background: #fff;
+    color: #4a3b6b;
+    border: 4px solid #c9a6ff;
+    box-shadow: 0 6px 0 #e2d1ff;
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .unit .no {
+    background: #6fcf97;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0 10px;
+    flex-shrink: 0;
+  }
+  .unit .name { flex: 1; }
+  .unit .month { display: block; font-size: 14px; font-weight: normal; color: #8a7aa8; }
+  .unit .star { font-size: 26px; flex-shrink: 0; }
+  .unit.done { border-color: #ffd34d; background: #fffbe6; }
+
+  /* じょうほう */
+  .status { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; font-size: 20px; margin-bottom: 14px; }
+  .status > span { background: #fff; padding: 6px 18px; border-radius: 999px; white-space: nowrap; }
+
+  /* もんだい */
+  .question {
+    background: #fff;
+    border: 4px solid #c9a6ff;
+    border-radius: 24px;
+    max-width: 640px;
+    margin: 0 auto 16px;
+    padding: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 1.6;
+    text-align: center;
+  }
+  .question .kind { display: block; font-size: 15px; color: #8a7aa8; font-weight: normal; margin-bottom: 4px; }
+
+  .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 640px; margin: 0 auto; }
+  .choice {
+    background: #fff;
+    color: #4a3b6b;
+    border: 4px solid #c9a6ff;
+    box-shadow: 0 6px 0 #e2d1ff;
+    font-size: 20px;
+    padding: 14px 8px;
+    min-height: 72px;
+  }
+  .choices.ox .choice { font-size: 56px; padding: 10px; min-height: 110px; }
+  .choice.correct { border-color: #ffd34d; background: #fffbe6; box-shadow: 0 0 0 6px rgba(255, 211, 77, 0.6); }
+  .choice.wrong { border-color: #ff8a8a; opacity: 0.6; }
+
+  #next { display: block; margin: 20px auto 0; }
+
+  /* おわり */
+  .result { text-align: center; font-size: 26px; line-height: 2; }
+  .result .big { font-size: 48px; font-weight: bold; color: #d6338a; }
+  .review { max-width: 640px; margin: 14px auto 0; display: flex; flex-direction: column; gap: 10px; }
+  .review div { background: #fff; border-radius: 14px; padding: 10px 14px; font-size: 17px; line-height: 1.6; }
+  .review b { color: #d6338a; }
+
+  @media (max-width: 600px) {
+    .units { grid-template-columns: 1fr; gap: 10px; }
+    .unit { font-size: 17px; padding: 10px 12px; border-width: 3px; }
+    .unit .month { font-size: 12px; }
+    .status { font-size: 15px; gap: 8px; margin-bottom: 10px; }
+    .status > span { padding: 4px 12px; }
+    .question { font-size: 18px; padding: 14px; border-width: 3px; }
+    .choices { gap: 10px; }
+    .choice { font-size: 16px; padding: 10px 6px; min-height: 60px; border-width: 3px; }
+    .choices.ox .choice { font-size: 44px; min-height: 90px; }
+    .result { font-size: 20px; }
+    .result .big { font-size: 36px; }
+    .review div { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back-link" href="../../index.html">← メニューに もどる</a>
+  <h1>🔬 まほうつかいの りかクイズ</h1>
+
+  <div class="wizard-box">
+    <div class="wizard">🧙‍♀️</div>
+    <div class="bubble" id="bubble"></div>
+  </div>
+
+  <!-- 単元 いちらん -->
+  <div class="screen show" id="unitsScreen">
+    <div class="units" id="units"></div>
+  </div>
+
+  <!-- もんだい -->
+  <div class="screen" id="quizScreen">
+    <div class="status">
+      <span id="unitName"></span>
+      <span>もんだい <b id="qno">1</b> / <span id="qmax">10</span></span>
+      <span>⭕ <b id="score">0</b></span>
+    </div>
+    <div class="question" id="question"></div>
+    <div class="choices" id="choices"></div>
+    <button class="purple" id="next">つぎへ ▶</button>
+  </div>
+
+  <!-- おわり -->
+  <div class="screen" id="endScreen">
+    <div class="result">
+      <div id="endUnit"></div>
+      <div class="big" id="endScore"></div>
+      <div id="endStar"></div>
+    </div>
+    <div class="result" id="reviewTitle"></div>
+    <div class="review" id="review"></div>
+    <div class="row">
+      <button class="lv1" id="retry">もういちど</button>
+      <button class="purple" id="backToUnits">単元を えらぶ</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../common/fireworks.js"></script>
+<script src="units.js"></script>
+<script>
+const PER_GAME = 10;
+const PASS = 8;   // 8もん いじょうで ⭐
+const PRAISE = ["せいかい！", "すごい！", "やったね！", "さすが！", "りか はかせ だね！"];
+
+const $ = (id) => document.getElementById(id);
+const bubble = $("bubble");
+
+let unit = null;
+let questions = [];
+let qIndex = 0;
+let score = 0;
+let missed = [];
+let answered = false;
+
+function say(html) { bubble.innerHTML = html; }
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+function shuffle(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("show"));
+  $(id).classList.add("show");
+}
+
+// ⭐の きろく（きろく できない ときも あそべる）
+let stars = {};
+try { stars = JSON.parse(localStorage.getItem("rika-quiz-stars")) || {}; } catch (e) { stars = {}; }
+function giveStar(u) {
+  stars[u.no] = true;
+  try { localStorage.setItem("rika-quiz-stars", JSON.stringify(stars)); } catch (e) {}
+}
+const answerLabel = (q) => (q.type === "ox" ? (q.a ? "⭕" : "❌") : q.a);
+
+// ---------- 単元 いちらん ----------
+function showUnits() {
+  const box = $("units");
+  box.innerHTML = "";
+  UNITS.forEach((u) => {
+    const b = document.createElement("button");
+    b.className = "unit" + (stars[u.no] ? " done" : "");
+    b.innerHTML = `<span class="no">${u.no}</span>
+      <span class="name">${u.icon} ${u.title}<span class="month">学校で やる 月: ${u.month}</span></span>
+      <span class="star">${stars[u.no] ? "⭐" : "☆"}</span>`;
+    b.addEventListener("click", () => startQuiz(u));
+    box.appendChild(b);
+  });
+  showScreen("unitsScreen");
+  const count = UNITS.filter((u) => stars[u.no]).length;
+  say(count === UNITS.length
+    ? "11の 単元 ぜんぶ ⭐！🎉 りか はかせ だね！"
+    : `どの 単元に ちょうせん する？🔬<br>10もん中 ${PASS}もん できたら ⭐だよ（いま ⭐ ${count}こ）`);
+}
+
+// ---------- もんだい ----------
+function startQuiz(u) {
+  unit = u || unit;
+  questions = shuffle(unit.questions).slice(0, PER_GAME);
+  qIndex = 0;
+  score = 0;
+  missed = [];
+  $("unitName").textContent = `${unit.icon} ${unit.title}`;
+  $("qmax").textContent = questions.length;
+  $("score").textContent = 0;
+  showScreen("quizScreen");
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = questions[qIndex];
+  answered = false;
+  $("qno").textContent = qIndex + 1;
+  $("next").style.visibility = "hidden";
+  $("question").innerHTML = `<span class="kind">${q.type === "ox" ? "⭕ か ❌ か こたえてね" : "4つから えらんでね"}</span>${q.q}`;
+
+  const box = $("choices");
+  box.innerHTML = "";
+  box.className = "choices" + (q.type === "ox" ? " ox" : "");
+  const options = q.type === "ox"
+    ? [{ label: "⭕", value: true }, { label: "❌", value: false }]
+    : shuffle([q.a, ...q.others]).map((t) => ({ label: t, value: t }));
+  options.forEach((o) => {
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.textContent = o.label;
+    b.value = String(o.value);
+    b.addEventListener("click", () => choose(b, o.value));
+    box.appendChild(b);
+  });
+  say(pick(["よく よんで かんがえてね🤔", "わかるかな？", "がっこうで ならった ことを おもいだしてね✨"]));
+}
+
+function choose(btn, value) {
+  if (answered) return;
+  answered = true;
+  const q = questions[qIndex];
+  $("choices").querySelectorAll(".choice").forEach((b) => { if (b.value === String(q.a)) b.classList.add("correct"); });
+  if (value === q.a) {
+    score++;
+    $("score").textContent = score;
+    fireworks(2);
+    say(`${pick(PRAISE)}<br>${q.why}`);
+  } else {
+    btn.classList.add("wrong");
+    missed.push(q);
+    say(`ざんねん！ こたえは <span class="big">${answerLabel(q)}</span><br>${q.why}`);
+  }
+  $("next").textContent = qIndex + 1 < questions.length ? "つぎへ ▶" : "けっかを みる ▶";
+  $("next").style.visibility = "visible";
+}
+
+// ---------- おわり ----------
+function showEnd() {
+  $("endUnit").textContent = `${unit.no}. ${unit.icon} ${unit.title}`;
+  $("endScore").textContent = `${questions.length}もん中 ${score}もん せいかい！`;
+  if (score >= PASS) {
+    const isNew = !stars[unit.no];
+    giveStar(unit);
+    $("endStar").textContent = isNew ? "⭐ ゲット！" : "⭐ きょうも ばっちり！";
+    fireworks(score === questions.length ? 8 : 4);
+    say(score === questions.length ? "ぜんもん せいかい！🎉 りか はかせ だね！" : "よく できたね！✨ ⭐を あげるね");
+  } else {
+    $("endStar").textContent = `あと ${PASS - score}もんで ⭐だよ`;
+    say("おしかったね！ まちがえた もんだいの せつめいを よんで、もういちど ちょうせん しよう😊");
+  }
+  $("reviewTitle").textContent = missed.length ? "まちがえた もんだい" : "";
+  $("review").innerHTML = missed
+    .map((q) => `<div>${q.q}<br>こたえ：<b>${answerLabel(q)}</b>　${q.why}</div>`)
+    .join("");
+  showScreen("endScreen");
+}
+
+$("next").addEventListener("click", () => {
+  qIndex++;
+  if (qIndex < questions.length) showQuestion();
+  else showEnd();
+});
+$("retry").addEventListener("click", () => startQuiz());
+$("backToUnits").addEventListener("click", showUnits);
+
+showUnits();
+</script>
+</body>
+</html>
