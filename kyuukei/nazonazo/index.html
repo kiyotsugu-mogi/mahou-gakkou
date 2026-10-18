@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まほうつかいの なぞなぞ</title>
+<link rel="stylesheet" href="../../common/style.css">
+<style>
+  .status { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; font-size: 20px; margin-bottom: 14px; }
+  .status span { background: #fff; padding: 6px 18px; border-radius: 999px; }
+  .break-time { color: #2f80ed; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
+  .row a { text-decoration: none; }
+  .yellow { background: #f2c94c; box-shadow: 0 6px 0 #c49a1b; }
+
+  .question {
+    background: #fff;
+    border: 4px solid #c9a6ff;
+    border-radius: 24px;
+    max-width: 640px;
+    margin: 0 auto 16px;
+    padding: 20px;
+    text-align: center;
+    font-size: 26px;
+    font-weight: bold;
+    line-height: 1.6;
+  }
+
+  .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 640px; margin: 0 auto; }
+  .choice {
+    background: #fff;
+    color: #4a3b6b;
+    border: 4px solid #c9a6ff;
+    box-shadow: 0 6px 0 #e2d1ff;
+    font-size: 24px;
+    padding: 16px 8px;
+    min-height: 76px;
+  }
+  .choice.correct { border-color: #ffd34d; background: #fffbe6; box-shadow: 0 0 0 6px rgba(255, 211, 77, 0.6); }
+  .choice.wrong { border-color: #ff8a8a; opacity: 0.6; }
+
+  .result { text-align: center; font-size: 26px; line-height: 2; }
+  .result .big { font-size: 48px; font-weight: bold; color: #d6338a; }
+  .rules { text-align: center; font-size: 20px; line-height: 1.8; }
+
+  #next { display: block; margin: 20px auto 0; }
+
+  @media (max-width: 600px) {
+    .status { font-size: 16px; gap: 8px; margin-bottom: 10px; }
+    .status span { padding: 4px 12px; }
+    .question { font-size: 19px; padding: 14px; border-width: 3px; }
+    .choices { gap: 10px; }
+    .choice { font-size: 18px; padding: 12px 6px; min-height: 60px; border-width: 3px; }
+    .result { font-size: 20px; }
+    .result .big { font-size: 36px; }
+    .rules { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back-link" href="../../index.html">← メニューに もどる</a>
+  <h1>❓ まほうつかいの なぞなぞ</h1>
+
+  <div class="wizard-box">
+    <div class="wizard">🧙‍♀️</div>
+    <div class="bubble" id="bubble"></div>
+  </div>
+
+  <div class="status">
+    <span class="break-time">☕ きゅうけい のこり <b id="breakLeft">5:00</b></span>
+  </div>
+
+  <!-- スタート -->
+  <div class="screen show" id="start">
+    <div class="rules">
+      なぞなぞを 5もん だすよ！<br>
+      4つの こたえから えらんでね。<br>
+      わからない ときは 💡ヒント を おしてね。
+    </div>
+    <div class="row"><button class="lv1" id="play">はじめる ▶</button></div>
+  </div>
+
+  <!-- もんだい -->
+  <div class="screen" id="quiz">
+    <div class="status">
+      <span>もんだい <b id="qno">1</b> / 5</span>
+      <span>⭕ <b id="score">0</b></span>
+    </div>
+    <div class="question" id="question"></div>
+    <div class="choices" id="choices"></div>
+    <div class="row"><button class="yellow" id="hint">💡 ヒント</button></div>
+    <button class="purple" id="next">つぎへ ▶</button>
+  </div>
+
+  <!-- けっか -->
+  <div class="screen" id="result">
+    <div class="result">
+      <div>なぞなぞ けっか</div>
+      <div class="big" id="resultScore"></div>
+      <div id="resultStars"></div>
+    </div>
+    <div class="row">
+      <button class="lv1" id="again">もういちど</button>
+      <a href="../../index.html"><button class="purple">メニューに もどる</button></a>
+    </div>
+  </div>
+
+  <!-- きゅうけい おしまい -->
+  <div class="screen" id="breakOver">
+    <div class="result">
+      <div>⏰ きゅうけいの 5ふんが おわったよ</div>
+      <div style="font-size: 0.75em">15ふん べんきょうしたら、また あそべるよ✨</div>
+    </div>
+    <div class="row">
+      <a href="../../index.html"><button class="purple">📚 メニューに もどる</button></a>
+    </div>
+  </div>
+</div>
+
+<script src="../../common/fireworks.js"></script>
+<script src="../../common/break-timer.js"></script>
+<script src="riddles.js"></script>
+<script>
+const PER_GAME = 5;
+const PRAISE = ["せいかい！", "すごい！", "やったね！", "まほうみたい！", "さすが！"];
+
+const $ = (id) => document.getElementById(id);
+const bubble = $("bubble");
+
+let questions = [];
+let qIndex = 0;
+let score = 0;
+let answered = false;
+let breakOver = false;
+
+function say(html) { bubble.innerHTML = html; }
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+function shuffle(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("show"));
+  $(id).classList.add("show");
+}
+
+// まだ 出ていない なぞなぞから えらぶ（100もん ぜんぶ 出たら また さいしょから）
+function loadSeen() {
+  try { return new Set(JSON.parse(localStorage.getItem("nazonazo-seen")) || []); } catch (e) { return new Set(); }
+}
+function saveSeen(seen) {
+  try { localStorage.setItem("nazonazo-seen", JSON.stringify([...seen])); } catch (e) {}
+}
+function pickRiddles() {
+  let seen = loadSeen();
+  let chosen = shuffle(RIDDLES.filter((r) => !seen.has(r.q))).slice(0, PER_GAME);
+  if (chosen.length < PER_GAME) {
+    // ぜんぶ 出おわったので リセット。たりない ぶんは まだ えらんでいない ものから
+    seen = new Set();
+    const rest = shuffle(RIDDLES.filter((r) => !chosen.includes(r))).slice(0, PER_GAME - chosen.length);
+    chosen = chosen.concat(rest);
+  }
+  chosen.forEach((r) => seen.add(r.q));
+  saveSeen(seen);
+  return chosen;
+}
+
+function startGame() {
+  if (breakOver) return;
+  questions = pickRiddles();
+  qIndex = 0;
+  score = 0;
+  $("score").textContent = 0;
+  showScreen("quiz");
+  showQuestion();
+}
+
+function showQuestion() {
+  const r = questions[qIndex];
+  answered = false;
+  $("qno").textContent = qIndex + 1;
+  $("question").textContent = r.q;
+  $("next").style.visibility = "hidden";
+  $("hint").disabled = false;
+  const box = $("choices");
+  box.innerHTML = "";
+  shuffle([r.a, ...r.others]).forEach((text) => {
+    const b = document.createElement("button");
+    b.className = "choice";
+    b.textContent = text;
+    b.addEventListener("click", () => choose(b, text));
+    box.appendChild(b);
+  });
+  say(pick(["なぞなぞ だよ！ わかるかな？🤔", "さあ、かんがえてみて！", "まほうの なぞなぞ、とけるかな？✨"]));
+}
+
+function choose(btn, text) {
+  if (answered) return;
+  answered = true;
+  const r = questions[qIndex];
+  $("hint").disabled = true;
+  $("choices").querySelectorAll(".choice").forEach((b) => { if (b.textContent === r.a) b.classList.add("correct"); });
+  if (text === r.a) {
+    score++;
+    $("score").textContent = score;
+    fireworks(2);
+    say(`${pick(PRAISE)}<br>${r.why}`);
+  } else {
+    btn.classList.add("wrong");
+    say(`ざんねん！ こたえは <span class="big">${r.a}</span><br>${r.why}`);
+  }
+  $("next").textContent = qIndex + 1 < questions.length ? "つぎへ ▶" : "けっかを みる ▶";
+  $("next").style.visibility = "visible";
+}
+
+function showResult() {
+  showScreen("result");
+  $("resultScore").textContent = `${questions.length}もん中 ${score}もん せいかい！`;
+  $("resultStars").textContent = "⭐".repeat(score) || "つぎは がんばろう！";
+  if (score === questions.length) {
+    fireworks(8);
+    say("ぜんもん せいかい！🎉 なぞなぞ はかせ だね！");
+  } else {
+    say("おつかれさま！ なぞなぞは 100もん あるから、また ちょうせんしてね😊");
+  }
+}
+
+$("play").addEventListener("click", startGame);
+$("again").addEventListener("click", startGame);
+$("hint").addEventListener("click", () => {
+  if (answered) return;
+  say(`💡 ヒント：${questions[qIndex].hint}`);
+});
+$("next").addEventListener("click", () => {
+  qIndex++;
+  if (qIndex < questions.length) showQuestion();
+  else showResult();
+});
+
+say("べんきょう おつかれさま！☕<br>まほうの なぞなぞに ちょうせん しよう！");
+
+// きゅうけいの タイマー（きゅうけいゲーム みんなで 5ふん）
+startBreakTimer({
+  onTick: (left) => { $("breakLeft").textContent = formatLeft(left); },
+  onEnd: () => {
+    breakOver = true;
+    showScreen("breakOver");
+    say("きゅうけい おしまい！⏰<br>そろそろ べんきょうしよう📚 がんばってね！");
+  },
+});
+</script>
+</body>
+</html>

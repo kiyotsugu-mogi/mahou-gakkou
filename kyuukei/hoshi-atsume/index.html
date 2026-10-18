@@ -102,7 +102,8 @@
   <!-- きゅうけい おしまい -->
   <div class="screen" id="breakOver">
     <div class="result">
-      <div>⏰ 5ふん たったよ</div>
+      <div>⏰ きゅうけいの 5ふんが おわったよ</div>
+      <div style="font-size: 0.75em">15ふん べんきょうしたら、また あそべるよ✨</div>
     </div>
     <div class="buttons">
       <a href="../../index.html"><button class="purple">📚 メニューに もどる</button></a>
@@ -111,9 +112,9 @@
 </div>
 
 <script src="../../common/fireworks.js"></script>
+<script src="../../common/break-timer.js"></script>
 <script>
 const ROUND_SEC = 60;
-const BREAK_SEC = 5 * 60;
 
 // おちてくるもの
 const ITEMS = {
@@ -314,20 +315,6 @@ function endRound() {
   }
 }
 
-// きゅうけいの タイマー（ページを ひらいてから 5ふん）
-const breakStart = Date.now();
-function tickBreak() {
-  const left = Math.max(0, BREAK_SEC - Math.floor((Date.now() - breakStart) / 1000));
-  $("breakLeft").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
-  if (left === 0 && !breakOver) {
-    breakOver = true;
-    running = false;
-    clearInterval(breakTimer);
-    showScreen("breakOver");
-    say("きゅうけい おしまい！⏰<br>そろそろ べんきょうしよう📚 がんばってね！");
-  }
-}
-const breakTimer = setInterval(tickBreak, 1000);
 
 // そうさ
 function moveTo(clientX) {
@@ -354,6 +341,17 @@ $("play").addEventListener("click", startRound);
 $("again").addEventListener("click", startRound);
 
 say("べんきょう おつかれさま！☕<br>きゅうけいに ほしを あつめよう⭐");
+
+// きゅうけいの タイマー（きゅうけいゲーム みんなで 5ふん）
+startBreakTimer({
+  onTick: (left) => { $("breakLeft").textContent = formatLeft(left); },
+  onEnd: () => {
+    breakOver = true;
+    running = false;
+    showScreen("breakOver");
+    say("きゅうけい おしまい！⏰<br>そろそろ べんきょうしよう📚 がんばってね！");
+  },
+});
 </script>
 </body>
 </html>
