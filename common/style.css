@@ -1,0 +1,113 @@
+/* どのゲームでも つかう 見た目 */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  background: linear-gradient(160deg, #fbe3ff 0%, #e3e9ff 50%, #e0fbff 100%);
+  color: #4a3b6b;
+  display: flex;
+  justify-content: center;
+}
+.app { width: 100%; max-width: 1000px; padding: 24px 16px; }
+h1 {
+  text-align: center;
+  font-size: 34px;
+  margin: 8px 0 20px;
+  color: #8a4fd8;
+  text-shadow: 2px 2px 0 #fff;
+}
+.screen { display: none; }
+.screen.show { display: block; }
+
+/* まほうつかい */
+.wizard-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.wizard {
+  font-size: 80px;
+  line-height: 1;
+  animation: float 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.bubble {
+  position: relative;
+  background: #fff;
+  border: 4px solid #c9a6ff;
+  border-radius: 24px;
+  padding: 16px 22px;
+  font-size: 22px;
+  line-height: 1.6;
+  min-height: 70px;
+  flex: 1;
+  box-shadow: 0 4px 0 #e2d1ff;
+}
+.bubble::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 26px;
+  border: 11px solid transparent;
+  border-right-color: #c9a6ff;
+}
+.bubble .big { font-size: 30px; color: #d6338a; font-weight: bold; }
+
+/* ボタン */
+.levels { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin-top: 30px; }
+button {
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 18px 28px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  color: #fff;
+  transition: transform 0.1s;
+  touch-action: manipulation; /* スマホで すばやく おしても ズームしない */
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) {
+  button:hover { transform: scale(1.05); }
+}
+button:active { transform: scale(0.97); }
+.lv1 { background: #6fcf97; box-shadow: 0 6px 0 #3f9e67; }
+.lv2 { background: #f2a93b; box-shadow: 0 6px 0 #c47d12; }
+.lv3 { background: #eb5c8f; box-shadow: 0 6px 0 #b8325f; }
+.sub { display: block; font-size: 16px; font-weight: normal; margin-top: 4px; }
+.purple { background: #9b6cf0; box-shadow: 0 6px 0 #6b3fc0; }
+
+/* メニューに もどる リンク */
+.back-link {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #8a4fd8;
+  text-decoration: none;
+  background: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+.back-link:hover { background: #f3eaff; }
+
+/* スマートフォン */
+@media (max-width: 600px) {
+  .app { padding: 12px 12px 24px; }
+  h1 { font-size: 22px; margin: 10px 0 12px; }
+  .wizard-box { gap: 12px; margin-bottom: 14px; }
+  .wizard { font-size: 52px; }
+  .bubble { font-size: 17px; padding: 10px 14px; min-height: 0; border-width: 3px; border-radius: 18px; }
+  .bubble::before { top: 14px; left: -19px; border-width: 9px; }
+  .bubble .big { font-size: 22px; }
+  .levels { gap: 12px; margin-top: 18px; }
+  button { font-size: 19px; padding: 14px 18px; border-radius: 16px; }
+  .sub { font-size: 14px; }
+  .back-link { font-size: 15px; padding: 6px 12px; }
+}

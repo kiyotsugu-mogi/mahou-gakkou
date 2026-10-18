@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まほうつかいの ほしあつめ</title>
+<link rel="stylesheet" href="../../common/style.css">
+<style>
+  .status {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+  .status span { background: #fff; padding: 6px 18px; border-radius: 999px; }
+  .break-time { color: #2f80ed; }
+
+  #sky {
+    display: block;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    border-radius: 20px;
+    border: 4px solid #c9a6ff;
+    cursor: none;
+    touch-action: none; /* ゆびで なぞっても がめんが うごかない */
+  }
+  .hint { text-align: center; font-size: 18px; margin-top: 10px; }
+
+  .rules { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
+  .rules div { background: #fff; border-radius: 14px; padding: 8px 16px; font-size: 20px; }
+
+  .result { text-align: center; font-size: 26px; line-height: 2; }
+  .result .big-score { font-size: 56px; font-weight: bold; color: #d6338a; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin-top: 24px; }
+  .buttons a { text-decoration: none; }
+
+  /* スマートフォン */
+  @media (max-width: 600px) {
+    .status { gap: 8px; font-size: 16px; margin-bottom: 10px; }
+    .status span { padding: 4px 12px; }
+    #sky { border-width: 3px; border-radius: 14px; }
+    .hint { font-size: 15px; }
+    .rules div { font-size: 17px; padding: 6px 12px; }
+    .result { font-size: 20px; }
+    .result .big-score { font-size: 42px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back-link" href="../../index.html">← メニューに もどる</a>
+  <h1>⭐ まほうつかいの ほしあつめ ⭐</h1>
+
+  <div class="wizard-box">
+    <div class="wizard">🧙‍♀️</div>
+    <div class="bubble" id="bubble"></div>
+  </div>
+
+  <div class="status">
+    <span class="break-time">☕ きゅうけい のこり <b id="breakLeft">5:00</b></span>
+  </div>
+
+  <!-- スタート画面 -->
+  <div class="screen show" id="start">
+    <div class="rules">
+      <div>⭐ +1</div>
+      <div>🌟 +5</div>
+      <div>⛈️ −3</div>
+      <div>❓ ひみつ</div>
+    </div>
+    <div class="buttons">
+      <button class="lv1" id="play">はじめる ▶</button>
+    </div>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div class="screen" id="game">
+    <div class="status">
+      <span>⭐ <b id="score">0</b> てん</span>
+      <span>⏱️ のこり <b id="timeLeft">60</b> びょう</span>
+    </div>
+    <canvas id="sky" width="800" height="500"></canvas>
+    <div class="hint" id="hint">マウスを よこに うごかしてね（← → キーでも うごくよ）</div>
+  </div>
+
+  <!-- けっか画面 -->
+  <div class="screen" id="result">
+    <div class="result">
+      <div>きょうの ほし</div>
+      <div class="big-score" id="resultScore"></div>
+      <div id="bestText"></div>
+    </div>
+    <div class="buttons">
+      <button class="lv1" id="again">もういちど</button>
+      <a href="../../index.html"><button class="purple">メニューに もどる</button></a>
+    </div>
+  </div>
+
+  <!-- きゅうけい おしまい -->
+  <div class="screen" id="breakOver">
+    <div class="result">
+      <div>⏰ 5ふん たったよ</div>
+    </div>
+    <div class="buttons">
+      <a href="../../index.html"><button class="purple">📚 メニューに もどる</button></a>
+    </div>
+  </div>
+</div>
+
+<script src="../../common/fireworks.js"></script>
+<script>
+const ROUND_SEC = 60;
+const BREAK_SEC = 5 * 60;
+
+// おちてくるもの
+const ITEMS = {
+  star:  { emoji: "⭐", points: 1,  size: 40, speed: 2.2 },
+  big:   { emoji: "🌟", points: 5,  size: 48, speed: 3.6 },
+  storm: { emoji: "⛈️", points: -3, size: 48, speed: 2.6 },
+  cat:   { emoji: "🐈‍⬛", points: 10, size: 56, speed: 4.2 },
+};
+
+const $ = (id) => document.getElementById(id);
+const bubble = $("bubble");
+const canvas = $("sky");
+const isPhone = window.innerWidth <= 600;
+if (isPhone) {
+  // スマホは たてながの 夜空
+  canvas.width = 400;
+  canvas.height = 560;
+  $("hint").textContent = "ゆびで よこに なぞってね👆";
+}
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+const WIZARD_Y = H - 50;
+
+let running = false;
+let score = 0;
+let elapsed = 0;     // このゲームで たった じかん（びょう）
+let lastTime = 0;
+let wizardX = W / 2;
+let items = [];
+let popups = [];
+let shakeUntil = 0;
+let keys = { left: false, right: false };
+let breakOver = false;
+
+function say(html) { bubble.innerHTML = html; }
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("show"));
+  $(id).classList.add("show");
+}
+
+// じこベスト（きろく できない ときは 0 あつかい）
+function loadBest() {
+  try { return Number(localStorage.getItem("hoshi-atsume-best")) || 0; } catch (e) { return 0; }
+}
+function saveBest(n) {
+  try { localStorage.setItem("hoshi-atsume-best", String(n)); } catch (e) {}
+}
+
+// きらきらの 星空（はいけい）
+const bgStars = Array.from({ length: 60 }, () => ({
+  x: Math.random() * W,
+  y: Math.random() * H,
+  r: Math.random() * 1.5 + 0.5,
+  t: Math.random() * Math.PI * 2,
+}));
+
+function drawSky(now) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#1b1446");
+  g.addColorStop(1, "#4b2a7b");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  bgStars.forEach((s) => {
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(s.t + now / 600);
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawEmoji(emoji, x, y, size) {
+  ctx.font = `${size}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(emoji, x, y);
+}
+
+function spawn() {
+  // じかんが たつほど ふえる
+  const rate = 0.025 + elapsed * 0.0006;
+  if (Math.random() > rate) return;
+  const r = Math.random();
+  let type = "star";
+  if (r < 0.006) type = "cat";
+  else if (r < 0.1) type = "big";
+  else if (r < 0.28) type = "storm";
+  const it = ITEMS[type];
+  items.push({
+    type,
+    x: 30 + Math.random() * (W - 60),
+    y: -30,
+    vy: it.speed * (1 + elapsed / 90) * (0.85 + Math.random() * 0.3),
+  });
+}
+
+function catchItem(item) {
+  const it = ITEMS[item.type];
+  score = Math.max(0, score + it.points);
+  $("score").textContent = score;
+  popups.push({
+    text: it.points > 0 ? `+${it.points}` : `${it.points}`,
+    x: item.x,
+    y: WIZARD_Y - 50,
+    life: 1,
+    color: it.points > 0 ? "#ffd34d" : "#ff8a8a",
+  });
+  if (item.type === "storm") {
+    shakeUntil = performance.now() + 400;
+    say("きゃっ！かみなりぐもだ⚡ よけてね！");
+  } else if (item.type === "cat") {
+    say("にゃーん！🐈‍⬛ ひみつの ねこを つかまえた！ +10てん！");
+  } else if (item.type === "big") {
+    say("おおきな ほし🌟 +5てん！");
+  }
+}
+
+function loop(now) {
+  if (!running) return;
+  const dt = Math.max(0, Math.min((now - lastTime) / 1000, 0.05));
+  lastTime = now;
+  elapsed += dt;
+
+  const left = Math.max(0, Math.ceil(ROUND_SEC - elapsed));
+  $("timeLeft").textContent = left;
+  if (elapsed >= ROUND_SEC) { endRound(); return; }
+
+  // キーで うごかす
+  if (keys.left) wizardX -= 9;
+  if (keys.right) wizardX += 9;
+  wizardX = Math.max(30, Math.min(W - 30, wizardX));
+
+  spawn();
+
+  drawSky(now);
+
+  items = items.filter((item) => {
+    item.y += item.vy * dt * 60;
+    if (item.y > WIZARD_Y - 30 && item.y < WIZARD_Y + 20 && Math.abs(item.x - wizardX) < 50) {
+      catchItem(item);
+      return false;
+    }
+    if (item.y > H + 40) return false;
+    drawEmoji(ITEMS[item.type].emoji, item.x, item.y, ITEMS[item.type].size);
+    return true;
+  });
+
+  // まほうつかい（かみなりに あたると ぷるぷる）
+  const shake = now < shakeUntil ? Math.sin(now / 25) * 8 : 0;
+  drawEmoji("🧙‍♀️", wizardX + shake, WIZARD_Y, 64);
+
+  popups = popups.filter((p) => {
+    p.y -= 1.2;
+    p.life -= 0.02;
+    if (p.life <= 0) return false;
+    ctx.globalAlpha = p.life;
+    ctx.font = "bold 32px sans-serif";
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.globalAlpha = 1;
+    return true;
+  });
+
+  requestAnimationFrame(loop);
+}
+
+function startRound() {
+  if (breakOver) return;
+  score = 0;
+  elapsed = 0;
+  items = [];
+  popups = [];
+  wizardX = W / 2;
+  $("score").textContent = 0;
+  $("timeLeft").textContent = ROUND_SEC;
+  showScreen("game");
+  say("ほしを たくさん あつめてね！⭐<br>かみなりぐも⛈️ には きをつけて！");
+  running = true;
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function endRound() {
+  running = false;
+  showScreen("result");
+  $("resultScore").textContent = `⭐ ${score} てん`;
+  const best = loadBest();
+  if (score > best) {
+    saveBest(score);
+    $("bestText").textContent = best > 0 ? `じこベスト こうしん！（まえは ${best}てん）` : "はじめての きろく！";
+    fireworks(6);
+    say("すごい！じこベスト こうしん🎉");
+  } else {
+    $("bestText").textContent = `じこベスト: ${best}てん`;
+    say("おつかれさま！もういちど あそぶ？");
+  }
+}
+
+// きゅうけいの タイマー（ページを ひらいてから 5ふん）
+const breakStart = Date.now();
+function tickBreak() {
+  const left = Math.max(0, BREAK_SEC - Math.floor((Date.now() - breakStart) / 1000));
+  $("breakLeft").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  if (left === 0 && !breakOver) {
+    breakOver = true;
+    running = false;
+    clearInterval(breakTimer);
+    showScreen("breakOver");
+    say("きゅうけい おしまい！⏰<br>そろそろ べんきょうしよう📚 がんばってね！");
+  }
+}
+const breakTimer = setInterval(tickBreak, 1000);
+
+// そうさ
+function moveTo(clientX) {
+  const r = canvas.getBoundingClientRect();
+  wizardX = ((clientX - r.left) / r.width) * W;
+}
+canvas.addEventListener("mousemove", (e) => moveTo(e.clientX));
+// スマホ: ゆびで さわった ところへ うごく
+const onTouch = (e) => {
+  e.preventDefault();
+  moveTo(e.touches[0].clientX);
+};
+canvas.addEventListener("touchstart", onTouch, { passive: false });
+canvas.addEventListener("touchmove", onTouch, { passive: false });
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") keys.left = true;
+  if (e.key === "ArrowRight") keys.right = true;
+});
+window.addEventListener("keyup", (e) => {
+  if (e.key === "ArrowLeft") keys.left = false;
+  if (e.key === "ArrowRight") keys.right = false;
+});
+$("play").addEventListener("click", startRound);
+$("again").addEventListener("click", startRound);
+
+say("べんきょう おつかれさま！☕<br>きゅうけいに ほしを あつめよう⭐");
+</script>
+</body>
+</html>

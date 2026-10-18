@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まほうつかいの かんじ カードめくり</title>
+<link rel="stylesheet" href="../../common/style.css">
+<style>
+  /* じょうほう */
+  .status {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+  .status span { background: #fff; padding: 6px 18px; border-radius: 999px; }
+
+  /* カード */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .card {
+    aspect-ratio: 3 / 4;
+    perspective: 800px;
+    cursor: pointer;
+  }
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+  }
+  .card.open .card-inner, .card.done .card-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.12);
+  }
+  .back {
+    background: repeating-linear-gradient(45deg, #9b6cf0 0 14px, #ad85f3 14px 28px);
+    border: 4px solid #fff;
+    font-size: 44px;
+  }
+  .front {
+    background: #fff;
+    border: 4px solid #c9a6ff;
+    transform: rotateY(180deg);
+    text-align: center;
+    padding: 4px;
+  }
+  .front.kanji { font-size: 64px; font-weight: bold; color: #4a3b6b; }
+  .front.yomi { font-size: 26px; font-weight: bold; color: #2f80ed; word-break: break-all; }
+  .card.done .front {
+    border-color: #ffd34d;
+    background: #fffbe6;
+    animation: sparkle 0.8s ease;
+  }
+  .card.done { cursor: default; }
+  @keyframes sparkle {
+    0% { box-shadow: 0 0 0 0 rgba(255, 211, 77, 0.9); }
+    100% { box-shadow: 0 0 0 18px rgba(255, 211, 77, 0); }
+  }
+  .card.miss .front { border-color: #ff8a8a; animation: shake 0.4s; }
+  @keyframes shake {
+    0%, 100% { transform: rotateY(180deg) translateX(0); }
+    25% { transform: rotateY(180deg) translateX(-6px); }
+    75% { transform: rotateY(180deg) translateX(6px); }
+  }
+
+  /* クリア */
+  .result { text-align: center; font-size: 26px; line-height: 2; }
+  .result .stars { font-size: 44px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin-top: 24px; }
+  .review {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .review div {
+    background: #fff;
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-size: 18px;
+  }
+  .review b { font-size: 28px; margin-right: 6px; }
+
+  /* ひみつの 黒ねこ */
+  .secret-cat {
+    position: fixed;
+    z-index: 10;
+    display: none;
+    pointer-events: none;
+    text-align: center;
+    transform: translate(-50%, -50%);
+  }
+  .secret-cat.show { display: block; animation: catJump 2.4s ease-in-out forwards; }
+  .secret-cat .cat-face { font-size: 130px; line-height: 1; }
+  .secret-cat .cat-talk {
+    background: #3b2f4f;
+    color: #fff;
+    border-radius: 18px;
+    padding: 8px 16px;
+    font-size: 20px;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+  @keyframes catJump {
+    0%   { transform: translate(-50%, -50%) scale(0.2); }
+    25%  { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.3) rotate(0deg); }
+    45%  { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.3) rotate(360deg); }
+    75%  { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.3) rotate(360deg); }
+    100% { transform: translate(calc(-50% + var(--dx) + 80vw), calc(-50% + var(--dy))) scale(1) rotate(360deg); }
+  }
+
+  /* スマートフォン */
+  @media (max-width: 600px) {
+    .status { gap: 10px; font-size: 16px; margin-bottom: 10px; }
+    .status span { padding: 4px 12px; }
+    .board { gap: 8px; }
+    .card { aspect-ratio: 4 / 5; }
+    .face { border-radius: 12px; }
+    .back { font-size: 28px; border-width: 3px; }
+    .front { border-width: 3px; }
+    .front.kanji { font-size: 40px; }
+    .front.yomi { font-size: 16px; }
+    .result { font-size: 20px; }
+    .result .stars { font-size: 30px; }
+    .review b { font-size: 22px; }
+    .secret-cat .cat-face { font-size: 90px; }
+    .secret-cat .cat-talk { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back-link" href="../../index.html">← メニューに もどる</a>
+  <h1>🪄 まほうつかいの かんじ カードめくり 🪄</h1>
+
+  <div class="wizard-box">
+    <div class="wizard">🧙‍♀️</div>
+    <div class="bubble" id="bubble"></div>
+  </div>
+
+  <!-- スタート画面 -->
+  <div class="screen show" id="start">
+    <div class="levels">
+      <button class="lv1" data-level="1">かんたん<span class="sub">8まい・1年生のかんじ</span></button>
+      <button class="lv2" data-level="2">ふつう<span class="sub">12まい・2年生のかんじ</span></button>
+      <button class="lv3" data-level="3">むずかしい<span class="sub">16まい・3年生のかんじ</span></button>
+    </div>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div class="screen" id="game">
+    <div class="status">
+      <span>めくったかいすう: <b id="tries">0</b></span>
+      <span>⭐ <b id="stars">0</b></span>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="buttons">
+      <button class="purple" id="quit">むずかしさを えらびなおす</button>
+    </div>
+  </div>
+
+  <!-- クリア画面 -->
+  <div class="screen" id="clear">
+    <div class="result">
+      <div>🎉 ぜんぶ そろったよ！ 🎉</div>
+      <div>めくったかいすう: <b id="resultTries"></b>かい</div>
+      <div class="stars" id="resultStars"></div>
+    </div>
+    <div class="result" id="catResult"></div>
+    <div class="review" id="review"></div>
+    <div class="buttons">
+      <button class="purple" id="again">もういちど</button>
+      <button class="lv2" id="change">むずかしさを かえる</button>
+    </div>
+  </div>
+</div>
+
+<div class="secret-cat" id="cat">
+  <div class="cat-talk">にゃーん！みつかっちゃった！<br>ボーナス⭐を あげるにゃ</div>
+  <div class="cat-face">🐈‍⬛</div>
+</div>
+
+<script src="../../common/fireworks.js"></script>
+<script>
+// かんじのデータ（がくねんごと）
+const KANJI = {
+  1: [
+    { kanji: "山", yomi: "やま", rei: "山に のぼる" },
+    { kanji: "川", yomi: "かわ", rei: "川で あそぶ" },
+    { kanji: "花", yomi: "はな", rei: "花が さく" },
+    { kanji: "犬", yomi: "いぬ", rei: "犬と さんぽ" },
+    { kanji: "月", yomi: "つき", rei: "お月さまが まるい" },
+    { kanji: "火", yomi: "ひ", rei: "火を つける" },
+    { kanji: "水", yomi: "みず", rei: "水を のむ" },
+    { kanji: "木", yomi: "き", rei: "木に のぼる" },
+    { kanji: "森", yomi: "もり", rei: "森で あそぶ" },
+    { kanji: "空", yomi: "そら", rei: "青い 空" },
+    { kanji: "雨", yomi: "あめ", rei: "雨が ふる" },
+    { kanji: "目", yomi: "め", rei: "目を とじる" },
+    { kanji: "耳", yomi: "みみ", rei: "耳で きく" },
+    { kanji: "手", yomi: "て", rei: "手を あらう" },
+    { kanji: "足", yomi: "あし", rei: "足が はやい" },
+    { kanji: "虫", yomi: "むし", rei: "虫を つかまえる" },
+    { kanji: "石", yomi: "いし", rei: "石を ひろう" },
+    { kanji: "竹", yomi: "たけ", rei: "竹の こ" },
+    { kanji: "貝", yomi: "かい", rei: "貝がらを あつめる" },
+    { kanji: "車", yomi: "くるま", rei: "車に のる" },
+    { kanji: "糸", yomi: "いと", rei: "糸で ぬう" },
+    { kanji: "草", yomi: "くさ", rei: "草が はえる" },
+    { kanji: "村", yomi: "むら", rei: "小さな 村" },
+    { kanji: "町", yomi: "まち", rei: "町を あるく" },
+    { kanji: "口", yomi: "くち", rei: "口を あける" },
+    { kanji: "赤", yomi: "あか", rei: "赤い りんご" },
+    { kanji: "青", yomi: "あお", rei: "青い うみ" },
+    { kanji: "白", yomi: "しろ", rei: "白い くも" },
+  ],
+  2: [
+    { kanji: "羽", yomi: "はね", rei: "とりの 羽" },
+    { kanji: "雲", yomi: "くも", rei: "白い 雲" },
+    { kanji: "海", yomi: "うみ", rei: "海で およぐ" },
+    { kanji: "岩", yomi: "いわ", rei: "大きな 岩" },
+    { kanji: "顔", yomi: "かお", rei: "顔を あらう" },
+    { kanji: "魚", yomi: "さかな", rei: "魚を つる" },
+    { kanji: "牛", yomi: "うし", rei: "牛の ミルク" },
+    { kanji: "夏", yomi: "なつ", rei: "夏やすみ" },
+    { kanji: "春", yomi: "はる", rei: "春に さくら が さく" },
+    { kanji: "秋", yomi: "あき", rei: "秋の おつきみ" },
+    { kanji: "冬", yomi: "ふゆ", rei: "冬は さむい" },
+    { kanji: "星", yomi: "ほし", rei: "星が ひかる" },
+    { kanji: "雪", yomi: "ゆき", rei: "雪だるまを つくる" },
+    { kanji: "船", yomi: "ふね", rei: "船に のる" },
+    { kanji: "鳥", yomi: "とり", rei: "鳥が とぶ" },
+    { kanji: "馬", yomi: "うま", rei: "馬に のる" },
+    { kanji: "米", yomi: "こめ", rei: "お米を たく" },
+    { kanji: "姉", yomi: "あね", rei: "わたしの 姉" },
+    { kanji: "弟", yomi: "おとうと", rei: "弟と あそぶ" },
+    { kanji: "風", yomi: "かぜ", rei: "風が ふく" },
+    { kanji: "池", yomi: "いけ", rei: "池の こい" },
+    { kanji: "歌", yomi: "うた", rei: "歌を うたう" },
+    { kanji: "朝", yomi: "あさ", rei: "朝ごはん" },
+    { kanji: "昼", yomi: "ひる", rei: "昼やすみ" },
+    { kanji: "夜", yomi: "よる", rei: "夜に ねる" },
+    { kanji: "紙", yomi: "かみ", rei: "紙ひこうき" },
+    { kanji: "頭", yomi: "あたま", rei: "頭を なでる" },
+    { kanji: "道", yomi: "みち", rei: "道を あるく" },
+    { kanji: "家", yomi: "いえ", rei: "家に かえる" },
+  ],
+  3: [
+    { kanji: "駅", yomi: "えき", rei: "駅で でんしゃを まつ" },
+    { kanji: "橋", yomi: "はし", rei: "橋を わたる" },
+    { kanji: "坂", yomi: "さか", rei: "坂を のぼる" },
+    { kanji: "島", yomi: "しま", rei: "海に うかぶ 島" },
+    { kanji: "湖", yomi: "みずうみ", rei: "大きな 湖" },
+    { kanji: "港", yomi: "みなと", rei: "港に 船が つく" },
+    { kanji: "岸", yomi: "きし", rei: "川の 岸" },
+    { kanji: "箱", yomi: "はこ", rei: "おもちゃ箱" },
+    { kanji: "畑", yomi: "はたけ", rei: "畑で やさいを そだてる" },
+    { kanji: "豆", yomi: "まめ", rei: "豆まき" },
+    { kanji: "皿", yomi: "さら", rei: "お皿を ならべる" },
+    { kanji: "笛", yomi: "ふえ", rei: "笛を ふく" },
+    { kanji: "鼻", yomi: "はな", rei: "ぞうの 鼻は ながい" },
+    { kanji: "葉", yomi: "は", rei: "木の 葉" },
+    { kanji: "羊", yomi: "ひつじ", rei: "羊の もこもこ" },
+    { kanji: "緑", yomi: "みどり", rei: "緑の はっぱ" },
+    { kanji: "皮", yomi: "かわ", rei: "みかんの 皮" },
+    { kanji: "板", yomi: "いた", rei: "まな板" },
+    { kanji: "柱", yomi: "はしら", rei: "家の 柱" },
+    { kanji: "庭", yomi: "にわ", rei: "庭で あそぶ" },
+    { kanji: "薬", yomi: "くすり", rei: "薬を のむ" },
+    { kanji: "氷", yomi: "こおり", rei: "つめたい 氷" },
+    { kanji: "湯", yomi: "ゆ", rei: "お湯を わかす" },
+    { kanji: "指", yomi: "ゆび", rei: "指で かぞえる" },
+    { kanji: "根", yomi: "ね", rei: "木の 根っこ" },
+    { kanji: "昔", yomi: "むかし", rei: "昔 むかし あるところに" },
+    { kanji: "祭", yomi: "まつり", rei: "夏 祭り" },
+    { kanji: "旅", yomi: "たび", rei: "旅に でる" },
+    { kanji: "命", yomi: "いのち", rei: "命を たいせつに" },
+  ],
+};
+
+const PAIRS = { 1: 4, 2: 6, 3: 8 };
+
+const PRAISE = ["すごい！", "やったね！", "せいかい！", "まほうみたい！", "かんぺき！"];
+const OSHII = [
+  "おしい！もういちど まほうを かけてみよう🪄",
+  "ちがったみたい。どこに あったか おぼえておこうね！",
+  "だいじょうぶ！つぎは きっと見つかるよ✨",
+];
+
+const $ = (id) => document.getElementById(id);
+const bubble = $("bubble");
+
+let level = 1;
+let words = [];      // こんかいの かんじ
+let opened = [];     // いま めくっている カード
+let locked = false;
+let tries = 0;
+let stars = 0;
+let found = 0;
+let quest = null;    // まほうつかいの もんだい
+let catSeen = false; // ひみつの ねこに あえたか
+const CAT_CHANCE = 0.08;
+
+function say(html) { bubble.innerHTML = html; }
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+function shuffle(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("show"));
+  $(id).classList.add("show");
+}
+
+function home() {
+  showScreen("start");
+  say("ようこそ！<b>かんじの まほうがっこう</b>へ！🏰<br>むずかしさを えらんでね。");
+}
+
+function newQuest() {
+  const left = words.filter((w) => !w.found);
+  if (left.length === 0) { quest = null; return; }
+  quest = pick(left);
+  say(`もんだいだよ！<br><span class="big">「${quest.kanji}」</span> の よみかたの カードを さがしてね！<br>見つけたら ボーナス⭐だよ`);
+}
+
+function startGame(lv) {
+  level = lv;
+  words = shuffle(KANJI[level]).slice(0, PAIRS[level]).map((w, i) => ({ ...w, id: i, found: false }));
+  opened = [];
+  locked = false;
+  tries = 0;
+  stars = 0;
+  found = 0;
+  catSeen = false;
+  $("tries").textContent = 0;
+  $("stars").textContent = 0;
+
+  const cards = [];
+  words.forEach((w) => {
+    cards.push({ id: w.id, type: "kanji", text: w.kanji });
+    cards.push({ id: w.id, type: "yomi", text: w.yomi });
+  });
+
+  const board = $("board");
+  board.innerHTML = "";
+  shuffle(cards).forEach((c) => {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.dataset.id = c.id;
+    el.innerHTML = `
+      <div class="card-inner">
+        <div class="face back">✨</div>
+        <div class="face front ${c.type}">${c.text}</div>
+      </div>`;
+    el.addEventListener("click", () => flip(el));
+    board.appendChild(el);
+  });
+
+  showScreen("game");
+  newQuest();
+}
+
+function flip(el) {
+  if (locked || el.classList.contains("open") || el.classList.contains("done")) return;
+  el.classList.add("open");
+  if (!catSeen && Math.random() < CAT_CHANCE) {
+    showCat(el, () => afterOpen(el));
+  } else {
+    afterOpen(el);
+  }
+}
+
+// カードから 黒ねこが とびだす
+function showCat(el, done) {
+  catSeen = true;
+  locked = true;
+  const cat = $("cat");
+  const r = el.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  cat.style.left = x + "px";
+  cat.style.top = y + "px";
+  cat.style.setProperty("--dx", (window.innerWidth / 2 - x) + "px");
+  cat.style.setProperty("--dy", (window.innerHeight / 2 - y) + "px");
+  cat.classList.remove("show");
+  void cat.offsetWidth; // アニメーションを さいしょから
+  cat.classList.add("show");
+
+  stars++;
+  $("stars").textContent = stars;
+  say("あっ！わたしの ねこ、こんなところに かくれてたのね！🐈‍⬛");
+
+  setTimeout(() => {
+    cat.classList.remove("show");
+    if (!el.isConnected) return; // とちゅうで あたらしいゲームを はじめたとき
+    locked = false;
+    done();
+  }, 2400);
+}
+
+function afterOpen(el) {
+  opened.push(el);
+  if (opened.length < 2) return;
+
+  tries++;
+  $("tries").textContent = tries;
+  const [a, b] = opened;
+
+  if (a.dataset.id === b.dataset.id) {
+    const w = words[Number(a.dataset.id)];
+    w.found = true;
+    found++;
+    a.classList.add("done");
+    b.classList.add("done");
+    opened = [];
+
+    let bonus = "";
+    stars++;
+    if (quest && quest.id === w.id) {
+      stars++;
+      bonus = "<br>もんだいの かんじだ！ボーナス⭐ ゲット！";
+    }
+    $("stars").textContent = stars;
+
+    fireworks(found === words.length ? 8 : 3);
+    say(`${pick(PRAISE)} <span class="big">${w.kanji}（${w.yomi}）</span><br>「${w.rei}」の ${w.kanji} だよ✨${bonus}`);
+
+    if (found === words.length) {
+      locked = true;
+      setTimeout(showClear, 2200);
+    } else if (!quest || quest.id === w.id) {
+      locked = true;
+      setTimeout(() => { locked = false; newQuest(); }, 2200);
+    }
+  } else {
+    locked = true;
+    a.classList.add("miss");
+    b.classList.add("miss");
+    say(pick(OSHII) + (quest ? `<br>（もんだい: <b>「${quest.kanji}」</b>の よみかた）` : ""));
+    setTimeout(() => {
+      a.classList.remove("open", "miss");
+      b.classList.remove("open", "miss");
+      opened = [];
+      locked = false;
+    }, 1000);
+  }
+}
+
+function showClear() {
+  showScreen("clear");
+  $("resultTries").textContent = tries;
+  $("resultStars").textContent = "⭐".repeat(stars);
+  $("catResult").textContent = catSeen ? "🐈‍⬛ ひみつの ねこに あえたね！" : "";
+  $("review").innerHTML = words
+    .map((w) => `<div><b>${w.kanji}</b>${w.yomi}</div>`)
+    .join("");
+  say("おめでとう！🎉 きみは <b>かんじの まほうつかい</b> だね！<br>きょう おぼえた かんじを みてみよう。");
+}
+
+document.querySelectorAll("[data-level]").forEach((btn) =>
+  btn.addEventListener("click", () => startGame(Number(btn.dataset.level)))
+);
+$("again").addEventListener("click", () => startGame(level));
+$("change").addEventListener("click", home);
+$("quit").addEventListener("click", home);
+
+home();
+</script>
+</body>
+</html>
