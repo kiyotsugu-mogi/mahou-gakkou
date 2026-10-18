@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まほうつかいの えいご ドリル</title>
+<link rel="stylesheet" href="../../common/style.css">
+<style>
+  .center { text-align: center; }
+  .sub-title { text-align: center; font-size: 26px; font-weight: bold; margin: 0 0 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
+  .blue { background: #56a8f2; box-shadow: 0 6px 0 #2a78c0; }
+  .green { background: #6fcf97; box-shadow: 0 6px 0 #3f9e67; }
+  .white { background: #fff; color: #4a3b6b; box-shadow: 0 6px 0 #e2d1ff; }
+
+  /* ユニット いちらん */
+  .units { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .unit {
+    background: #fff;
+    color: #4a3b6b;
+    border: 4px solid #c9a6ff;
+    box-shadow: 0 6px 0 #e2d1ff;
+    text-align: left;
+    padding: 14px 18px;
+  }
+  .unit .name { font-size: 22px; }
+  .unit .no {
+    display: inline-block;
+    background: #9b6cf0;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0 10px;
+    margin-right: 6px;
+  }
+  .unit .stars { font-size: 18px; font-weight: normal; margin-top: 8px; letter-spacing: 2px; }
+  .unit.crown { border-color: #ffd34d; background: #fffbe6; }
+
+  /* れんしゅうを えらぶ */
+  .modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 640px; margin: 0 auto; }
+  .modes button { line-height: 1.4; }
+  .modes .sub { font-size: 15px; }
+  .modes button:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+  /* じょうほう */
+  .status { display: flex; justify-content: center; gap: 16px; font-size: 20px; margin-bottom: 14px; }
+  .status span { background: #fff; padding: 6px 18px; border-radius: 999px; }
+
+  /* もんだいの カード */
+  .prompt {
+    background: #fff;
+    border: 4px solid #c9a6ff;
+    border-radius: 20px;
+    padding: 18px;
+    max-width: 640px;
+    margin: 0 auto 16px;
+    text-align: center;
+  }
+  .prompt .ja { font-size: 28px; font-weight: bold; }
+  .prompt .en { font-size: 30px; font-weight: bold; color: #2f80ed; margin-top: 6px; }
+  .prompt .hint-ja { font-size: 18px; margin-top: 6px; }
+
+  /* えらぶ */
+  .choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 640px; margin: 0 auto; }
+  .choice {
+    background: #fff;
+    color: #4a3b6b;
+    border: 4px solid #c9a6ff;
+    box-shadow: 0 6px 0 #e2d1ff;
+    font-size: 22px;
+    padding: 16px 10px;
+    min-height: 80px;
+  }
+  .choice.correct { border-color: #ffd34d; background: #fffbe6; box-shadow: 0 0 0 6px rgba(255, 211, 77, 0.6); }
+  .choice.wrong { border-color: #ff8a8a; opacity: 0.6; }
+
+  /* つづり */
+  .answer-line {
+    font-size: 34px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #2f80ed;
+    min-height: 1.5em;
+    word-break: break-word;
+  }
+  .answer-line .blank { color: #c9a6ff; }
+  .pieces { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 640px; margin: 0 auto; }
+  .piece {
+    background: #fff;
+    color: #4a3b6b;
+    border: 3px solid #c9a6ff;
+    box-shadow: 0 5px 0 #e2d1ff;
+    font-size: 26px;
+    min-width: 56px;
+    padding: 10px 14px;
+  }
+  .piece.used { visibility: hidden; }
+  .piece.hint { border-color: #ffd34d; background: #fffbe6; animation: glow 0.8s ease-in-out infinite alternate; }
+  .piece.shake { animation: shake 0.35s; border-color: #ff8a8a; }
+  @keyframes glow { from { box-shadow: 0 0 0 0 rgba(255, 211, 77, 0.8); } to { box-shadow: 0 0 0 8px rgba(255, 211, 77, 0); } }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* はつおん */
+  .mic.listening { background: #eb5c8f; box-shadow: 0 6px 0 #b8325f; animation: glow 0.8s ease-in-out infinite alternate; }
+  .heard { text-align: center; font-size: 20px; margin-top: 14px; min-height: 1.5em; }
+
+  #next { display: block; margin: 20px auto 0; }
+
+  /* たんごリスト */
+  .word-list { display: flex; flex-direction: column; gap: 10px; max-width: 640px; margin: 0 auto; }
+  .word-list button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    background: #fff;
+    color: #4a3b6b;
+    box-shadow: 0 4px 0 #e2d1ff;
+    font-size: 20px;
+    padding: 12px 18px;
+  }
+  .word-list .en { color: #2f80ed; }
+  .word-list .ja { font-size: 16px; font-weight: normal; }
+
+  /* おわり */
+  .result { text-align: center; font-size: 26px; line-height: 2; }
+  .result .big { font-size: 44px; font-weight: bold; color: #d6338a; }
+
+  /* スマートフォン */
+  @media (max-width: 600px) {
+    .sub-title { font-size: 20px; margin-bottom: 12px; }
+    .units { grid-template-columns: 1fr; gap: 10px; }
+    .unit { padding: 10px 14px; border-width: 3px; }
+    .unit .name { font-size: 18px; }
+    .modes { gap: 10px; }
+    .modes button { font-size: 16px; padding: 12px 8px; }
+    .modes .sub { font-size: 12px; }
+    .status { font-size: 16px; gap: 10px; }
+    .status span { padding: 4px 12px; }
+    .prompt { padding: 12px; border-width: 3px; }
+    .prompt .ja { font-size: 20px; }
+    .prompt .en { font-size: 22px; }
+    .choices { gap: 10px; }
+    .choice { font-size: 17px; padding: 12px 6px; min-height: 64px; border-width: 3px; }
+    .answer-line { font-size: 24px; }
+    .pieces { gap: 8px; }
+    .piece { font-size: 20px; min-width: 44px; padding: 8px 10px; }
+    .heard { font-size: 16px; }
+    .word-list button { font-size: 17px; padding: 10px 14px; }
+    .word-list .ja { font-size: 13px; }
+    .result { font-size: 20px; }
+    .result .big { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back-link" href="../../index.html">← メニューに もどる</a>
+  <h1>📒 まほうつかいの えいご ドリル</h1>
+
+  <div class="wizard-box">
+    <div class="wizard">🧙‍♀️</div>
+    <div class="bubble" id="bubble"></div>
+  </div>
+
+  <!-- ユニット いちらん -->
+  <div class="screen show" id="unitsScreen">
+    <div class="units" id="units"></div>
+  </div>
+
+  <!-- れんしゅうを えらぶ -->
+  <div class="screen" id="modesScreen">
+    <div class="sub-title" id="unitTitle"></div>
+    <div class="modes" id="modes"></div>
+    <div class="row">
+      <button class="white" id="showList">📃 たんごリスト</button>
+      <button class="purple backToUnits">← ユニットを えらぶ</button>
+    </div>
+  </div>
+
+  <!-- たんごリスト -->
+  <div class="screen" id="listScreen">
+    <div class="sub-title" id="listTitle"></div>
+    <div class="word-list" id="wordList"></div>
+    <div class="row"><button class="purple backToModes">← もどる</button></div>
+  </div>
+
+  <!-- もんだい -->
+  <div class="screen" id="quizScreen">
+    <div class="status">
+      <span>もんだい <b id="qno"></b> / <span id="qmax"></span></span>
+      <span>⭕ <b id="score">0</b></span>
+    </div>
+    <div class="prompt" id="prompt"></div>
+    <div id="area"></div>
+    <button class="purple" id="next">つぎへ ▶</button>
+  </div>
+
+  <!-- おわり -->
+  <div class="screen" id="endScreen">
+    <div class="result">
+      <div id="endMode"></div>
+      <div class="big" id="endScore"></div>
+      <div id="endStar"></div>
+    </div>
+    <div class="row">
+      <button class="lv1" id="retry">もういちど</button>
+      <button class="purple backToModes">← れんしゅうを えらぶ</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../common/fireworks.js"></script>
+<script src="../../common/speech.js"></script>
+<script src="units.js"></script>
+<script>
+const MODES = [
+  { id: "listen", icon: "🔊", name: "きいて いみを えらぶ", desc: "えいごを きいて いみを えらぶ", cls: "blue" },
+  { id: "ja2en", icon: "📖", name: "にほんご→えいご", desc: "いみを 見て えいごを えらぶ", cls: "lv2" },
+  { id: "spell", icon: "✏️", name: "つづりを かく", desc: "ボタンを じゅんばんに おす", cls: "green" },
+  { id: "speak", icon: "🎤", name: "はつおん チェック", desc: "マイクに むかって いってみる", cls: "lv3" },
+];
+const PASS = 0.8;   // 8わり できたら ⭐
+const PRAISE = ["せいかい！", "すごい！", "やったね！", "まほうみたい！", "かんぺき！"];
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const $ = (id) => document.getElementById(id);
+const bubble = $("bubble");
+
+let unit = null;
+let mode = null;
+let questions = [];
+let qIndex = 0;
+let score = 0;
+
+function say(html) { bubble.innerHTML = html; }
+function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+function shuffle(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("show"));
+  $(id).classList.add("show");
+}
+function speak(text, rate) {
+  if (!speakEnglish(text, rate)) {
+    say("あれ？ 音が でないみたい…🔇<br>音が 出るか、おうちの人に 見てもらってね。");
+  }
+}
+function button(cls, html, onClick) {
+  const b = document.createElement("button");
+  b.className = cls;
+  b.innerHTML = html;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+// ⭐の きろく（きろく できない ときも あそべる）
+let progress = {};
+try { progress = JSON.parse(localStorage.getItem("eigo-drill-stars")) || {}; } catch (e) { progress = {}; }
+function hasStar(u, m) { return !!(progress[u.no] && progress[u.no][m]); }
+function giveStar(u, m) {
+  progress[u.no] = progress[u.no] || {};
+  progress[u.no][m] = true;
+  try { localStorage.setItem("eigo-drill-stars", JSON.stringify(progress)); } catch (e) {}
+}
+function hasCrown(u) { return MODES.every((m) => hasStar(u, m.id)); }
+function starRow(u) { return MODES.map((m) => `${m.icon}${hasStar(u, m.id) ? "⭐" : "☆"}`).join(" "); }
+
+// ---------- ユニット いちらん ----------
+function showUnits() {
+  stopSpeaking();
+  const box = $("units");
+  box.innerHTML = "";
+  UNITS.forEach((u) => {
+    box.appendChild(button(
+      "unit" + (hasCrown(u) ? " crown" : ""),
+      `<div class="name"><span class="no">${u.no}</span>${u.icon} ${u.title} ${hasCrown(u) ? "👑" : ""}</div>
+       <div class="stars">${starRow(u)}</div>`,
+      () => showModes(u)
+    ));
+  });
+  showScreen("unitsScreen");
+  say("ドリルの ユニットを えらんでね📒<br>4つの れんしゅうで ⭐を あつめよう！");
+}
+
+// ---------- れんしゅうを えらぶ ----------
+function showModes(u) {
+  unit = u || unit;
+  stopSpeaking();
+  $("unitTitle").textContent = `${unit.no}. ${unit.icon} ${unit.title} ${hasCrown(unit) ? "👑" : ""}`;
+  const box = $("modes");
+  box.innerHTML = "";
+  MODES.forEach((m) => {
+    const ok = m.id !== "speak" || Recognition;
+    const b = button(
+      m.cls,
+      `${m.icon} ${m.name} ${hasStar(unit, m.id) ? "⭐" : ""}<span class="sub">${ok ? m.desc : "この ブラウザでは つかえないよ"}</span>`,
+      () => startQuiz(m.id)
+    );
+    b.disabled = !ok;
+    box.appendChild(b);
+  });
+  showScreen("modesScreen");
+  say(hasCrown(unit)
+    ? "この ユニットは マスターしたね👑 すごい！"
+    : "どの れんしゅうを する？<br>8わり できたら ⭐が もらえるよ！");
+}
+
+// ---------- たんごリスト ----------
+function showList() {
+  $("listTitle").textContent = `${unit.no}. ${unit.title} の ことば`;
+  const box = $("wordList");
+  box.innerHTML = "";
+  unit.words.forEach((w) => {
+    box.appendChild(button("", `<span class="en">🔊 ${w.en}</span><span class="ja">${w.ja}</span>`, () => speak(w.en)));
+  });
+  showScreen("listScreen");
+  say("ことばを おすと はつおんが きけるよ🔊<br>まねして いってみよう！");
+}
+
+// ---------- もんだい ----------
+function startQuiz(m) {
+  mode = m;
+  questions = shuffle(unit.words);
+  qIndex = 0;
+  score = 0;
+  $("qmax").textContent = questions.length;
+  $("score").textContent = 0;
+  showScreen("quizScreen");
+  showQuestion();
+}
+
+function showQuestion() {
+  const w = questions[qIndex];
+  $("qno").textContent = qIndex + 1;
+  $("next").style.visibility = "hidden";
+  $("area").innerHTML = "";
+  stopListening();
+  if (mode === "listen") showListen(w);
+  if (mode === "ja2en") showJa2En(w);
+  if (mode === "spell") showSpell(w);
+  if (mode === "speak") showSpeak(w);
+}
+
+function soundButtons(w) {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.style.marginTop = "0";
+  row.style.marginBottom = "14px";
+  row.appendChild(button("blue", "🔊 もういちど", () => speak(w.en)));
+  row.appendChild(button("green", "🐢 ゆっくり", () => speak(w.en, 0.7)));
+  return row;
+}
+
+function finishQuestion(ok, message) {
+  if (ok) {
+    score++;
+    $("score").textContent = score;
+    fireworks(2);
+  }
+  say(message);
+  $("next").textContent = qIndex + 1 < questions.length ? "つぎへ ▶" : "けっかを みる ▶";
+  $("next").style.visibility = "visible";
+}
+
+// えらぶ もんだい（🔊 と 📖）
+function showChoices(w, label) {
+  const others = shuffle(unit.words.filter((o) => o !== w)).slice(0, 3);
+  const box = document.createElement("div");
+  box.className = "choices";
+  let answered = false;
+  shuffle([w, ...others]).forEach((o) => {
+    const b = button("choice", label(o), () => {
+      if (answered) return;
+      answered = true;
+      box.querySelectorAll(".choice").forEach((c) => { if (c.word === w) c.classList.add("correct"); });
+      speak(w.en);
+      if (o === w) {
+        finishQuestion(true, `${pick(PRAISE)} <span class="big">${w.en}</span><br>「${w.ja}」だよ✨`);
+      } else {
+        b.classList.add("wrong");
+        finishQuestion(false, `おしい！ こたえは <span class="big">${w.en}</span><br>「${w.ja}」だよ。`);
+      }
+    });
+    b.word = o;
+    box.appendChild(b);
+  });
+  $("area").appendChild(box);
+}
+
+function showListen(w) {
+  $("prompt").innerHTML = `<div class="ja">👂 よく きいてね</div>`;
+  $("area").appendChild(soundButtons(w));
+  showChoices(w, (o) => o.ja);
+  say("きこえた えいごの いみを えらんでね！");
+  speak(w.en);
+}
+
+function showJa2En(w) {
+  $("prompt").innerHTML = `<div class="ja">${w.ja}</div>`;
+  showChoices(w, (o) => o.en);
+  say("この いみの えいごは どれかな？");
+}
+
+// ---------- つづり ----------
+// えいごを「もじ・たんご」と「きごう・スペース」に わける
+function splitTokens(en) {
+  return en.split(/([A-Za-z0-9']+)/).filter((s) => s !== "").map((s) => ({ text: s, isWord: /[A-Za-z0-9]/.test(s) }));
+}
+
+function showSpell(w) {
+  const tokens = splitTokens(w.en);
+  const words = tokens.filter((t) => t.isWord).map((t) => t.text);
+  const byWord = words.length > 1;               // フレーズは たんごを ならべる
+  const pieces = byWord ? words : words[0].split("");
+  let filled = 0;
+  let mistakes = 0;
+  let hinted = false;
+
+  $("prompt").innerHTML = `<div class="ja">${w.ja}</div><div class="answer-line" id="answerLine"></div>`;
+  $("area").appendChild(soundButtons(w));
+  const box = document.createElement("div");
+  box.className = "pieces";
+  $("area").appendChild(box);
+
+  function drawAnswer() {
+    let n = 0;
+    let html = "";
+    if (byWord) {
+      tokens.forEach((t) => {
+        if (!t.isWord) { html += t.text.replace(/ /g, "&nbsp;"); return; }
+        html += n < filled ? t.text : `<span class="blank">${"＿".repeat(Math.min(t.text.length, 4))}</span>`;
+        n++;
+      });
+    } else {
+      html = pieces.map((p, i) => (i < filled ? p : `<span class="blank">＿</span>`)).join("");
+      html += tokens.filter((t) => !t.isWord).map((t) => t.text).join("");
+    }
+    $("answerLine").innerHTML = html;
+  }
+
+  function showHint() {
+    box.querySelectorAll(".piece").forEach((b) => b.classList.remove("hint"));
+    const next = [...box.querySelectorAll(".piece:not(.used)")].find((b) => b.dataset.text === pieces[filled]);
+    if (next) next.classList.add("hint");
+  }
+
+  shuffle(pieces).forEach((p) => {
+    const b = button("piece", p, () => {
+      if (filled >= pieces.length || b.classList.contains("used")) return;
+      if (p === pieces[filled]) {
+        b.classList.add("used");
+        b.classList.remove("hint");
+        filled++;
+        drawAnswer();
+        if (filled === pieces.length) {
+          speak(w.en);
+          finishQuestion(!hinted, hinted
+            ? `できたね！ <span class="big">${w.en}</span><br>つぎは ヒントなしで できるかな？`
+            : `${pick(PRAISE)} <span class="big">${w.en}</span><br>ばっちり かけたね✨`);
+        } else if (hinted) {
+          showHint();
+        }
+      } else {
+        mistakes++;
+        b.classList.remove("shake");
+        void b.offsetWidth;
+        b.classList.add("shake");
+        if (mistakes >= 3) {
+          hinted = true;
+          say("ヒントだよ💡 ひかっている ボタンを おしてね");
+          showHint();
+        } else {
+          say("おしい！ もういちど きいてみよう🔊");
+        }
+      }
+    });
+    b.dataset.text = p;
+    box.appendChild(b);
+  });
+
+  drawAnswer();
+  say(byWord ? "たんごを じゅんばんに ならべてね！" : "もじを じゅんばんに おしてね！");
+  speak(w.en);
+}
+
+// ---------- はつおん ----------
+const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+const ORDINALS = { first: "one", second: "two", third: "three", fourth: "four", fifth: "five", sixth: "six",
+  seventh: "seven", eighth: "eight", ninth: "nine", tenth: "ten", eleventh: "eleven", twelfth: "twelve" };
+const CONTRACTIONS = { "i'm": "i am", "what's": "what is", "it's": "it is", "you're": "you are" };
+
+// くらべやすい かたちに する（"My birthday is April 10th." → "my birthday is april ten"）
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^a-z0-9' ]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((t) => CONTRACTIONS[t] || t)
+    .join(" ")
+    .split(" ")
+    .map((t) => {
+      const num = t.match(/^(\d+)(st|nd|rd|th)?$/);
+      if (num && NUMBER_WORDS[Number(num[1])]) return NUMBER_WORDS[Number(num[1])];
+      return ORDINALS[t] || t;
+    })
+    .join(" ")
+    .replace(/'/g, "");
+}
+
+// きこえた ことばの どれかに、こたえが まるごと 入っていれば OK
+function isMatch(heardList, target) {
+  const goal = normalize(target).replace(/ /g, "");
+  return heardList.some((h) => normalize(h).replace(/ /g, "").includes(goal));
+}
+
+let recognizer = null;
+function stopListening() {
+  if (recognizer) { try { recognizer.abort(); } catch (e) {} recognizer = null; }
+}
+
+function showSpeak(w) {
+  let tries = 0;
+  let done = false;
+  $("prompt").innerHTML = `<div class="en">${w.en}</div><div class="hint-ja">${w.ja}</div>`;
+
+  const row = document.createElement("div");
+  row.className = "row";
+  row.style.marginTop = "0";
+  row.appendChild(button("blue", "🔊 おてほん", () => speak(w.en)));
+  const mic = button("lv3 mic", "🎤 いってみる", listen);
+  row.appendChild(mic);
+  const heard = document.createElement("div");
+  heard.className = "heard";
+  $("area").appendChild(row);
+  $("area").appendChild(heard);
+
+  function listen() {
+    if (done || recognizer) return;
+    stopSpeaking();
+    recognizer = new Recognition();
+    recognizer.lang = "en-US";
+    recognizer.maxAlternatives = 5;
+    recognizer.interimResults = false;
+    mic.classList.add("listening");
+    mic.textContent = "👂 きいてるよ…";
+    say("どうぞ！ おおきな こえで いってみてね🎤");
+
+    let gotResult = false;
+    recognizer.onresult = (e) => {
+      gotResult = true;
+      const list = [...e.results[0]].map((r) => r.transcript);
+      tries++;
+      if (isMatch(list, w.en)) {
+        done = true;
+        heard.textContent = `きこえた ことば：「${list[0]}」`;
+        finishQuestion(true, `ばっちり きこえたよ！🎉<br><span class="big">${w.en}</span>`);
+      } else {
+        heard.textContent = `きこえた ことば：「${list[0]}」`;
+        if (tries >= 3) {
+          done = true;
+          finishQuestion(false, "むずかしかったね。おてほんを なんども きいて、まねしてみよう🔊<br>「つぎへ」で すすめるよ。");
+        } else {
+          say(`「${list[0]}」に きこえたよ。<br>おてほんを きいて、もういちど！`);
+        }
+      }
+    };
+    recognizer.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        say("マイクが つかえないみたい🎤<br>ブラウザで マイクを「ゆるす」に してね。おうちの人に きいてみてね。");
+      } else if (e.error === "no-speech") {
+        say("きこえなかったよ。もうすこし おおきな こえで いってみてね！");
+      } else if (e.error !== "aborted") {
+        say("うまく きけなかったよ。もういちど おしてみてね🎤");
+      }
+    };
+    recognizer.onend = () => {
+      recognizer = null;
+      mic.classList.remove("listening");
+      mic.textContent = "🎤 いってみる";
+      if (!gotResult && !done) heard.textContent = "";
+    };
+    try {
+      recognizer.start();
+    } catch (e) {
+      recognizer = null;
+      mic.classList.remove("listening");
+      mic.textContent = "🎤 いってみる";
+      say("うまく はじめられなかったよ。もういちど おしてみてね🎤");
+    }
+  }
+
+  say("🔊で おてほんを きいてから、🎤を おして いってみよう！");
+  speak(w.en);
+}
+
+// ---------- おわり ----------
+function showEnd() {
+  stopListening();
+  const m = MODES.find((x) => x.id === mode);
+  const pass = score >= Math.ceil(questions.length * PASS);
+  const hadCrown = hasCrown(unit);
+  $("endMode").textContent = `${unit.no}. ${unit.title} ／ ${m.icon} ${m.name}`;
+  $("endScore").textContent = `${questions.length}もん中 ${score}もん`;
+
+  if (pass) {
+    const isNew = !hasStar(unit, mode);
+    giveStar(unit, mode);
+    if (hasCrown(unit) && !hadCrown) {
+      $("endStar").textContent = "⭐ ゲット！ ユニット マスター👑";
+      fireworks(10);
+      say(`やったー！<b>${unit.title}</b> を マスターしたよ👑<br>きみは えいごの まほうつかいだね！`);
+    } else {
+      $("endStar").textContent = isNew ? "⭐ ゲット！" : "⭐ きょうも ばっちり！";
+      fireworks(score === questions.length ? 6 : 3);
+      say(score === questions.length ? "ぜんもん せいかい！🎉 すごいね！" : "よく できたね！✨ ⭐を あげるね");
+    }
+  } else {
+    $("endStar").textContent = `あと ${Math.ceil(questions.length * PASS) - score}もんで ⭐だよ`;
+    say("おしかったね！ 📃たんごリストで きいてから、もういちど やってみよう😊");
+  }
+  showScreen("endScreen");
+}
+
+$("next").addEventListener("click", () => {
+  qIndex++;
+  if (qIndex < questions.length) showQuestion();
+  else showEnd();
+});
+$("retry").addEventListener("click", () => startQuiz(mode));
+$("showList").addEventListener("click", showList);
+document.querySelectorAll(".backToUnits").forEach((b) => b.addEventListener("click", showUnits));
+document.querySelectorAll(".backToModes").forEach((b) => b.addEventListener("click", () => { stopListening(); showModes(); }));
+
+showUnits();
+</script>
+</body>
+</html>

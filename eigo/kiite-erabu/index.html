@@ -138,6 +138,7 @@
 </div>
 
 <script src="../../common/fireworks.js"></script>
+<script src="../../common/speech.js"></script>
 <script>
 // ことばの データ（しゅるいごと）
 const WORDS = {
@@ -252,57 +253,15 @@ function showScreen(id) {
   $(id).classList.add("show");
 }
 
-// えいごを よみあげる
-let englishVoice = null;
-// ききとりやすい 女の人の 声（うえから じゅんに さがす）
-const NICE_VOICES = [
-  "Ava", "Zoe", "Allison", "Susan", // Mac の きれいな 声（ダウンロードすると つかえる）
-  "Samantha",                  // Mac
-  "Google US English",         // Chrome
-  "Microsoft Aria", "Microsoft Jenny", "Microsoft Zira", // Windows
-  "Flo", "Shelley", "Sandy", "Kathy", "Karen",
-];
-// おなじ 名前なら プレミアム → エンハンス（拡張）→ ふつう の じゅん
-const QUALITY = ["Premium", "プレミアム", "Enhanced", "拡張"];
-const quality = (v) => {
-  const i = QUALITY.findIndex((q) => v.name.includes(q));
-  return i === -1 ? 0 : QUALITY.length - i;
-};
-// おもしろ声（ききとりにくい）は つかわない
-const FUNNY_VOICES = [
-  "Albert", "Bad News", "Bahh", "Bells", "Boing", "Bubbles", "Cellos", "Wobble",
-  "Good News", "Jester", "Organ", "Superstar", "Trinoids", "Whisper", "Zarvox",
-];
-function findVoice() {
-  const voices = speechSynthesis.getVoices().filter((v) => v.lang.replace("_", "-").startsWith("en"));
-  for (const name of NICE_VOICES) {
-    const found = voices.filter((v) => v.name.startsWith(name)).sort((a, b) => quality(b) - quality(a));
-    if (found.length) { englishVoice = found[0]; return; }
-  }
-  const normal = voices.filter((v) => !FUNNY_VOICES.some((f) => v.name.startsWith(f)));
-  englishVoice = normal.find((v) => v.lang.replace("_", "-") === "en-US") || normal[0] || null;
-}
-if ("speechSynthesis" in window) {
-  findVoice();
-  speechSynthesis.addEventListener("voiceschanged", findVoice);
-}
-
-function speak(text, rate = 0.95) {
-  if (!("speechSynthesis" in window)) {
+// えいごを よみあげる（common/speech.js）
+function speak(text, rate) {
+  if (!speakEnglish(text, rate)) {
     say("あれ？ 音が でないみたい…🔇<br>パソコンの 音が 出るか、おうちの人に 見てもらってね。");
-    return;
   }
-  if (!englishVoice) findVoice();
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text + "."); // 「.」で ことばの おわりが しぜんな ひびきに なる
-  if (englishVoice) u.voice = englishVoice;
-  u.lang = englishVoice ? englishVoice.lang : "en-US";
-  u.rate = rate;
-  speechSynthesis.speak(u);
 }
 
 function home() {
-  speechSynthesis.cancel();
+  stopSpeaking();
   showScreen("start");
   say("えいごの まほうを おぼえよう！🔤<br>どの ことばで あそぶ？");
 }
